@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CS2 Faceit stats viewer — match history, KD, winrate and more.">
+    <title>{% if nickname %}{{ nickname }} — {% endif %}CS2 Stats Hub</title>
+    <link rel="stylesheet" href="{% static 'viewer_stats/css/style.css' %}">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <span class="navbar__logo">CS2<span>Stats</span></span>
+</nav>
+
+<!-- SEARCH -->
+<div class="search-wrap">
+    <form class="search-form" method="GET" action="{% url 'index' %}">
+        <div class="search-input-group">
+            <input
+                id="search-input"
+                type="text"
+                name="nickname"
+                value="{{ nickname }}"
+                placeholder="Enter Faceit nickname…"
+                autocomplete="off"
+                autofocus
+            >
+            <button type="submit">Search</button>
+        </div>
+        
+        <!-- Выбор периода -->
+        <div class="period-selector">
+            <label>
+                <input type="radio" name="period" value="30" {% if period == '30' %}checked{% endif %} onchange="this.form.submit()">
+                <span>1 Month</span>
+            </label>
+            <label>
+                <input type="radio" name="period" value="90" {% if period == '90' %}checked{% endif %} onchange="this.form.submit()">
+                <span>3 Months</span>
+            </label>
+            <label>
+                <input type="radio" name="period" value="365" {% if period == '365' %}checked{% endif %} onchange="this.form.submit()">
+                <span>1 Year</span>
+            </label>
+            <label>
+                <input type="radio" name="period" value="all" {% if period == 'all' or not period %}checked{% endif %} onchange="this.form.submit()">
+                <span>All Time</span>
+            </label>
+        </div>
+    </form>
+</div>
+
+<!-- LOADER OVERLAY (Hidden by default) -->
+<div id="loader-overlay" class="loader-overlay" style="display: none;">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Fetching stats...</div>
+</div>
+
+<!-- PAGE CONTENT -->
+<div class="page">
+
+    {% if error %}
+    <!-- ERROR -->
+    <div class="error-box" role="alert">⚠ {{ error }}</div>
+
+    {% elif nickname and stats %}
+    <!-- ===== PLAYER HEADER ===== -->
+    <div class="player-header">
+        {% if avatar %}
+            <img class="player-avatar" src="{{ avatar }}" alt="{{ nickname }} avatar">
+        {% else %}
+            <div class="player-avatar-placeholder">{{ nickname|first|upper }}</div>
+        {% endif %}
+
+        <div class="player-info">
+            <h1>{{ nickname }}</h1>
+            <div class="player-meta">
+                {% if country %}<span>🌍 {{ country|upper }}</span>{% endif %}
+                {% if elo %}<span class="elo-badge">⚡ {{ elo }} ELO</span>{% endif %}
+                {% if level %}<span class="level-badge">Lvl {{ level }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== STATS CARDS ===== -->
+    <section class="stats-section">
+        <h2>
+            {% if period == '30' %}Last 1 Month Overview
+            {% elif period == '90' %}Last 3 Months Overview
+            {% elif period == '365' %}Last 1 Year Overview
+            {% else %}All-time overview{% endif %}
+        </h2>
+        <div class="stats-grid">
+
+            <div class="stat-card">
+                <div class="stat-card__label">Matches</div>
+                <div class="stat-card__value">{{ stats.matches }}</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card__label">K/D Ratio</div>
+                <div class="stat-card__value">{{ stats.kd_ratio|floatformat:2 }}</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card__label">Headshots %</div>
+                <div class="stat-card__value">{{ stats.headshot_pct|floatformat:0 }}%</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card__label">Win Rate</div>
+                <div class="stat-card__value">{{ stats.winrate_pct|floatformat:1 }}%</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card__label">Avg Kills</div>
+                <div class="stat-card__value">{{ stats.average_kills|floatformat:0 }}</div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ===== MATCH HISTORY TABLE ===== -->
+    <section class="matches-section">
+        <h2>Match history — {{ matches|length }} matches</h2>
+        <div class="matches-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Map</th>
+                        <th>Result</th>
+                        <th>K / D</th>
+                        <th>K/D Ratio</th>
+                        <th>Headshots</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for match in matches %}
+                    <tr>
+                        <td class="td-map">{{ match.map }}</td>
+
+                        <td class="{% if match.win %}td-win{% else %}td-loss{% endif %}">
+                            {% if match.win %}WIN{% else %}LOSS{% endif %}
+                        </td>
+
+                        <td class="td-kd-str">{{ match.kills }}—{{ match.deaths }}</td>
+
+                        <td class="
+                            {% if match.kd|floatformat:2 >= '1.20' %}kd-good
+                            {% elif match.kd|floatformat:2 >= '0.90' %}kd-ok
+                            {% else %}kd-bad{% endif %}
+                        ">{{ match.kd }}</td>
+
+                        <td class="td-num">{{ match.headshots }}</td>
+
+                        <td class="td-date">{{ match.played_at }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% elif nickname %}
+    <!-- PLAYER NOT FOUND BUT NO ERROR -->
+    <div class="error-box">Player "{{ nickname }}" not found.</div>
+
+    {% else %}
+    <!-- LANDING (empty state) -->
+    <div class="landing">
+        <div class="landing__icon">🎮</div>
+        <div class="landing__title">Search a Faceit player</div>
+        <div class="landing__sub">Enter a nickname above to see stats and match history</div>
+    </div>
+    {% endif %}
+
+</div><!-- /page -->
+
+<script>
+    const form = document.querySelector('.search-form');
+    const loader = document.getElementById('loader-overlay');
+    
+    if (form && loader) {
+        form.addEventListener('submit', function(e) {
+            const input = document.getElementById('search-input');
+            if (input.value.trim() !== '') {
+                loader.style.display = 'flex';
+            }
+        });
+        
+        // Скрываем лоадер, если пользователь возвращается назад кнопкой Back
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                loader.style.display = 'none';
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
