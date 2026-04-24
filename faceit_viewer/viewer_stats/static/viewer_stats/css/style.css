@@ -447,3 +447,94 @@ tbody td {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
+
+/* ===== MATCH ROOM ===== */
+.match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 4rem;
+    margin-bottom: 3rem;
+}
+
+.team-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.team-score h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.score {
+    font-size: 3.5rem;
+    font-weight: 800;
+}
+
+.score-win { color: var(--green); }
+.score-loss { color: var(--red); }
+
+.match-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.match-status h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.match-status-meta {
+    font-size: 0.9rem;
+}
+
+.faceit-link {
+    color: var(--blue-link);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.faceit-link:hover {
+    color: var(--accent);
+}
+
+.teams-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.team-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--accent);
+}
+
+.td-player {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .match-header {
+        padding: 1.5rem;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+}

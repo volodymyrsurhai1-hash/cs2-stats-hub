@@ -2,3 +2,4 @@ requests
 python-dotenv
 django
 psycopg
+psycopg2

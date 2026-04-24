@@ -34,19 +34,19 @@
         <!-- Выбор периода -->
         <div class="period-selector">
             <label>
-                <input type="radio" name="period" value="30" {% if period == '30' %}checked{% endif %} onchange="this.form.submit()">
+                <input type="radio" name="period" value="30" {% if period == '30' or not period %}checked{% endif %}>
                 <span>1 Month</span>
             </label>
             <label>
-                <input type="radio" name="period" value="90" {% if period == '90' %}checked{% endif %} onchange="this.form.submit()">
+                <input type="radio" name="period" value="90" {% if period == '90' %}checked{% endif %}>
                 <span>3 Months</span>
             </label>
             <label>
-                <input type="radio" name="period" value="365" {% if period == '365' %}checked{% endif %} onchange="this.form.submit()">
+                <input type="radio" name="period" value="365" {% if period == '365' %}checked{% endif %}>
                 <span>1 Year</span>
             </label>
             <label>
-                <input type="radio" name="period" value="all" {% if period == 'all' or not period %}checked{% endif %} onchange="this.form.submit()">
+                <input type="radio" name="period" value="all" {% if period == 'all' %}checked{% endif %}>
                 <span>All Time</span>
             </label>
         </div>
@@ -140,7 +140,7 @@
                 </thead>
                 <tbody>
                 {% for match in matches %}
-                    <tr>
+                    <tr onclick="window.location='{% url 'match_room' match.match_id %}';" style="cursor: pointer;" title="View Match Room">
                         <td class="td-map">{{ match.map }}</td>
 
                         <td class="{% if match.win %}td-win{% else %}td-loss{% endif %}">
@@ -190,6 +190,17 @@
             if (input.value.trim() !== '') {
                 loader.style.display = 'flex';
             }
+        });
+
+        const periodRadios = document.querySelectorAll('input[name="period"]');
+        periodRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const input = document.getElementById('search-input');
+                if (input.value.trim() !== '') {
+                    loader.style.display = 'flex';
+                }
+                form.submit();
+            });
         });
         
         // Скрываем лоадер, если пользователь возвращается назад кнопкой Back

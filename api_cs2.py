@@ -1,5 +1,6 @@
 import requests
 from config import API_FACEIT
+
 import json
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional, Union
@@ -12,8 +13,10 @@ HEADERS = {
 }
 
 
+
 @dataclass
 class PlayerStats:
+    name: str
     matches: int
     kd_ratio: float
     headshot_pct: float   # 0.0–100.0
@@ -30,6 +33,22 @@ class PlayerStats:
         }
 
 @dataclass
+class Player:
+    nickname: str
+    player_id : str
+    kills: str
+    deaths: str
+    ADR: str
+    kd : str
+    headshots_pct : str
+
+@dataclass
+class Team:
+    name: str
+    score: int
+    players: list[Player]
+
+@dataclass
 class MatchRecord:
     map: str
     win: bool
@@ -38,13 +57,7 @@ class MatchRecord:
     deaths: int
     headshots: int
     played_at: str
-
-# class Player(Protocol):
-#     nickname: str
-#     def get_player(self) -> Union[dict[str, Any], str]: ...
-#     def get_player_stats(self) -> Union[dict[str, Any], str]: ...
-#     def get_player_matches(self) -> Union[dict[str, Any], str]: ...
-
+    match_id : str
 
 
 
@@ -61,7 +74,7 @@ class FaceitPlayer:
         self._cached_player_id: Optional[str] = None
 
     @staticmethod
-    def _get_json_response(endpoint: str, params: dict = None) -> dict[str, Any]:
+    def _get_json_response(endpoint: str, params: Optional[dict] = None) -> dict[str, Any]:
         # URL формируется здесь
         url = f"https://open.faceit.com/data/v4/{endpoint}"
         response = requests.get(url,
@@ -76,6 +89,15 @@ class FaceitPlayer:
                 status_code=err.response.status_code,
                 message=str(err)
             ) from err
+
+    @staticmethod
+    def _format_timestamp(ts: str) -> str:
+        """Конвертирует ISO 8601 строку в читаемый вид: '22 Apr 2025'."""
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            return dt.strftime("%d %b %Y")
+        except (ValueError, TypeError, AttributeError):
+            return ts or "—"
 
     @property
     def _player_id(self) -> str:
@@ -124,7 +146,7 @@ class FaceitPlayer:
 
         while True:
             if len(history) <= self._OFFSET_LIMIT:
-                params = {"limit": self._PAGE_SIZE, "offset": len(history)}
+                params= {"limit": self._PAGE_SIZE, "offset": len(history)}
             else:
                 last_ts = history[-1].get("Match Finished At")
                 params = {"limit": self._PAGE_SIZE, "to": last_ts}
@@ -175,6 +197,7 @@ class FaceitPlayer:
                 wins += 1
 
         return PlayerStats(
+            name=self.nickname,
             matches=total_matches,
             kd_ratio=total_kills / total_deaths if total_deaths > 0 else float(total_kills),
             headshot_pct=(total_headshots / total_kills * 100) if total_kills > 0 else 0.0,
@@ -183,14 +206,7 @@ class FaceitPlayer:
         )
 
 
-    @staticmethod
-    def _format_timestamp(ts: str) -> str:
-        """Конвертирует ISO 8601 строку в читаемый вид: '22 Apr 2025'."""
-        try:
-            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-            return dt.strftime("%d %b %Y")
-        except (ValueError, TypeError, AttributeError):
-            return ts or "—"
+
 
     def get_player_matches(self, period_days: Optional[int] = None) -> list[MatchRecord]:
         items = self._fetch_all_match_stats(period_days=period_days)
@@ -203,9 +219,32 @@ class FaceitPlayer:
                 deaths=int(s.get("Deaths", 0)),
                 headshots=int(s.get("Headshots", 0)),
                 played_at=self._format_timestamp(s.get("Updated At", "")),
+                match_id=s.get("Match Id")
             )
             for s in items
         ]
+
+    def get_room_of_match(self, match_id: str) -> list[Team]:
+        matchroom: list[Team] = []
+
+        data = self._get_json_response(f"matches/{match_id}/stats")
+        for teams in data.get("rounds", []):
+            for team in teams.get("teams", []):
+                team_players = []
+                for pl in team.get("players", []):
+                    team_players.append(Player(
+                        nickname=pl.get("nickname", ""),
+                        player_id=pl.get("player_id", ""),
+                        kills=pl.get('player_stats').get("Kills", 0),
+                        deaths=pl.get('player_stats').get("Deaths", 0),
+                        ADR=pl.get('player_stats').get("ADR", 0),
+                        kd = pl.get('player_stats').get("K/D Ratio", 0),
+                        headshots_pct = pl.get('player_stats').get("Headshots %", "0%") + '%',
+
+                    ))
+                matchroom.append(Team(name=team.get('team_stats').get("Team", ""), score = team.get('team_stats').get('Final Score', 0), players=team_players))
+
+        return matchroom
 
 
     def __repr__(self) -> str:
@@ -215,7 +254,8 @@ class FaceitPlayer:
 
 if __name__ == "__main__":
     player = FaceitPlayer("matb_shluyxa")
-    stats = player.get_player_stats()
-    print(f"Всего матчей: {stats.matches}")
-    print(stats.as_display())
-    print(player.get_player_matches())
+    matches = player.get_player_matches(30)
+    a = player.get_room_of_match(matches[0].match_id)
+
+
+
