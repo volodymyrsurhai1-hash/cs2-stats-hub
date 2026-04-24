@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Room — CS2 Stats Hub</title>
+    <link rel="stylesheet" href="{% static 'viewer_stats/css/style.css' %}">
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="{% url 'index' %}" style="text-decoration: none;"><span class="navbar__logo">CS2<span>Stats</span></span></a>
+</nav>
+
+<div class="page match-room-page">
+    {% if error %}
+    <div class="error-box" role="alert">⚠ {{ error }}</div>
+    {% elif teams|length >= 2 %}
+    
+    <!-- MATCH HEADER -->
+    <div class="match-header">
+        <div class="team-score team-score-1">
+            <h2>{{ teams.0.name }}</h2>
+            <div class="score {% if teams.0.score > teams.1.score %}score-win{% else %}score-loss{% endif %}">{{ teams.0.score }}</div>
+        </div>
+        <div class="match-status">
+            <h3>Match over</h3>
+            <div class="match-status-meta">
+                <a href="https://www.faceit.com/en/cs2/room/{{ match_id }}" target="_blank" class="faceit-link">View on Faceit</a>
+            </div>
+        </div>
+        <div class="team-score team-score-2">
+            <h2>{{ teams.1.name }}</h2>
+            <div class="score {% if teams.1.score > teams.0.score %}score-win{% else %}score-loss{% endif %}">{{ teams.1.score }}</div>
+        </div>
+    </div>
+
+    <!-- TEAMS SECTION -->
+    <div class="teams-container">
+        {% for team in teams %}
+        <section class="team-section">
+            <h2 class="team-name">{{ team.name }}</h2>
+            <div class="matches-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>K—D</th>
+                            <th>+/-</th>
+                            <th>ADR</th>
+                            <th>HS %</th>
+                            <th>K/D</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for player in team.players %}
+                        <tr>
+                            <td class="td-player">{{ player.nickname }}</td>
+                            <td class="td-num">{{ player.kills }}—{{ player.deaths }}</td>
+                            <td class="
+                                {% if player.plus_minus > 0 %}kd-good
+                                {% elif player.plus_minus == 0 %}td-num
+                                {% else %}kd-bad{% endif %}
+                            ">{% if player.plus_minus > 0 %}+{% endif %}{{ player.plus_minus }}</td>
+                            <td class="td-num">{{ player.ADR }}</td>
+                            <td class="td-num">{{ player.headshots_pct }}</td>
+                            <td class="
+                                {% if player.kd|floatformat:2 >= '1.20' %}kd-good
+                                {% elif player.kd|floatformat:2 >= '0.90' %}kd-ok
+                                {% else %}kd-bad{% endif %}
+                            ">{{ player.kd }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="error-box">Match data could not be parsed correctly.</div>
+    {% endif %}
+</div>
+
+</body>
+</html>
