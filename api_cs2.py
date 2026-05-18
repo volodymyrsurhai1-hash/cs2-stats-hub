@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Optional, Union
 from dataclasses import dataclass
 
+from abc import ABC, abstractmethod
 
 HEADERS = {
     "Authorization": f"Bearer {API_FACEIT}",
@@ -13,8 +14,7 @@ HEADERS = {
 }
 
 
-
-@dataclass
+@dataclass(frozen=True)
 class PlayerStats:
     name: str
     matches: int
@@ -22,7 +22,7 @@ class PlayerStats:
     headshot_pct: float   # 0.0–100.0
     winrate_pct: float    # 0.0–100.0
     average_kills: float
-    def as_display(self) -> dict[str, str]:
+    def __str__(self) -> dict[str, str]:
         """Строковое представление для UI."""
         return {
             "Matches": str(self.matches),
@@ -32,7 +32,7 @@ class PlayerStats:
             "Average Kills": f"{self.average_kills:.0f}",
         }
 
-@dataclass
+@dataclass()
 class Player:
     nickname: str
     player_id : str
@@ -42,13 +42,13 @@ class Player:
     kd : str
     headshots_pct : str
 
-@dataclass
+@dataclass(frozen=True)
 class Team:
     name: str
     score: int
     players: list[Player]
 
-@dataclass
+@dataclass(frozen=True)
 class MatchRecord:
     map: str
     win: bool
@@ -60,6 +60,15 @@ class MatchRecord:
     match_id : str
 
 
+class AggregatedStats(ABC):
+    @abstractmethod
+    def aggregate_stats(self, stats: Player) -> str:
+        pass
+
+
+class TelegramStats(AggregatedStats):
+    def aggregate_stats(self, stats: Player) -> str:
+        pass
 
 class FaceitAPIError(Exception):
     """Любая ошибка при обращении к Faceit API."""
@@ -98,6 +107,22 @@ class FaceitPlayer:
             return dt.strftime("%d %b %Y")
         except (ValueError, TypeError, AttributeError):
             return ts or "—"
+
+    @staticmethod
+    def _sum_stats(items: list[dict]) -> tuple[int, int, int, int, int]:
+        total_matches = len(items)
+        total_kills = 0
+        total_deaths = 0
+        total_headshots = 0
+        wins = 0
+
+        for stats in items:
+            total_kills += int(stats.get("Kills", 0))
+            total_deaths += int(stats.get("Deaths", 0))
+            total_headshots += int(stats.get("Headshots", 0))
+            if stats.get("Result") == "1":
+                wins += 1
+        return total_matches, total_kills, total_deaths, total_headshots, wins
 
     @property
     def _player_id(self) -> str:
@@ -181,20 +206,17 @@ class FaceitPlayer:
 
         return history
 
+
+
     def get_player_stats(self, period_days: Optional[int] = None) -> PlayerStats:
         items = self._fetch_all_match_stats(period_days=period_days)
-        total_matches = len(items)
-        total_kills = 0
-        total_deaths = 0
-        total_headshots = 0
-        wins = 0
+        stats = self._sum_stats(items)
 
-        for stats in items:
-            total_kills += int(stats.get("Kills", 0))
-            total_deaths += int(stats.get("Deaths", 0))
-            total_headshots += int(stats.get("Headshots", 0))
-            if stats.get("Result") == "1":
-                wins += 1
+        total_matches = stats[0]
+        total_kills = stats[1]
+        total_deaths = stats[2]
+        total_headshots = stats[3]
+        wins = stats[4]
 
         return PlayerStats(
             name=self.nickname,
@@ -231,14 +253,14 @@ class FaceitPlayer:
         for teams in data.get("rounds", []):
             for team in teams.get("teams", []):
                 team_players = []
-                for pl in team.get("players", []):
+                for  pl in team.get("players", []):
                     team_players.append(Player(
-                        nickname=pl.get("nickname", ""),
-                        player_id=pl.get("player_id", ""),
-                        kills=pl.get('player_stats').get("Kills", 0),
-                        deaths=pl.get('player_stats').get("Deaths", 0),
-                        ADR=pl.get('player_stats').get("ADR", 0),
-                        kd = pl.get('player_stats').get("K/D Ratio", 0),
+                        nickname=pl.get("nickname", ''),
+                        player_id=pl.get("player_id", ''),
+                        kills=pl.get('player_stats').get("Kills", ''),
+                        deaths=pl.get('player_stats').get("Deaths", ''),
+                        ADR=pl.get('player_stats').get("ADR", ''),
+                        kd = pl.get('player_stats').get("K/D Ratio", ''),
                         headshots_pct = pl.get('player_stats').get("Headshots %", "0%") + '%',
 
                     ))
@@ -256,6 +278,7 @@ if __name__ == "__main__":
     player = FaceitPlayer("matb_shluyxa")
     matches = player.get_player_matches(30)
     a = player.get_room_of_match(matches[0].match_id)
+    print(player._player_id)
 
 
 

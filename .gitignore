@@ -12,6 +12,7 @@ venv/
 .venv/
 env/
 ENV/
+.mypy_cache/
 
 # Базы данных (если используете SQLite)
 *.sqlite3
