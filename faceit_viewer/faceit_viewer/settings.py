@@ -78,14 +78,6 @@ WSGI_APPLICATION = 'faceit_viewer.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "FACEIT_DB",
-        "USER": DB_USER,
-        "PASSWORD": DB_PASSWORD,
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
-    }
 }
 
 
